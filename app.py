@@ -8,27 +8,31 @@ env = PaperReviewEnv()
 
 @app.get("/")
 def root():
-    return {"message": "Paper Review OpenEnv is running"}
+    return {"status": "ok"}
 
 
-@app.get("/reset")
+# REQUIRED: reset must be POST
+@app.post("/reset")
 def reset():
     obs = env.reset()
     return obs.dict()
 
 
+# REQUIRED: step must be POST
 @app.post("/step")
 def step(action: dict):
     action_obj = Action(**action)
     obs, reward, done, info = env.step(action_obj)
+
     return {
         "observation": obs.dict(),
         "reward": reward.dict(),
         "done": done,
-        "info": info,
+        "info": info
     }
 
 
+# REQUIRED: state must be GET
 @app.get("/state")
 def state():
     return env.state()
