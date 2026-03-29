@@ -1,0 +1,18 @@
+[project]
+name = "paper-review-openenv"
+version = "0.1.0"
+description = "OpenEnv environment for research paper review simulation"
+authors = [
+    {name = "Rambabu"}
+]
+requires-python = ">=3.10"
+
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "openai"
+]
+
+[tool.openenv]
+entrypoint = "environment:PaperReviewEnv"
