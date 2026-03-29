@@ -2,15 +2,7 @@
 name = "paper-review-openenv"
 version = "0.1.0"
 description = "OpenEnv environment for research paper review simulation"
-<<<<<<< HEAD
-authors = [
-    {name = "Rambabu"}
-]
 requires-python = ">=3.10"
-
-=======
-requires-python = ">=3.10"
->>>>>>> 79cf27a (Updated file changes)
 dependencies = [
     "fastapi",
     "uvicorn",
@@ -19,8 +11,4 @@ dependencies = [
 ]
 
 [tool.openenv]
-<<<<<<< HEAD
-entrypoint = "environment:PaperReviewEnv"
-=======
 environment = "environment:PaperReviewEnv"
->>>>>>> 79cf27a (Updated file changes)
