@@ -1,24 +1,22 @@
 from fastapi import FastAPI
 from environment import PaperReviewEnv, Action
+import uvicorn
 
 app = FastAPI()
-
 env = PaperReviewEnv()
 
 
 @app.get("/")
-def root():
+def health():
     return {"status": "ok"}
 
 
-# REQUIRED: reset must be POST
 @app.post("/reset")
 def reset():
     obs = env.reset()
     return obs.dict()
 
 
-# REQUIRED: step must be POST
 @app.post("/step")
 def step(action: dict):
     action_obj = Action(**action)
@@ -32,7 +30,14 @@ def step(action: dict):
     }
 
 
-# REQUIRED: state must be GET
 @app.get("/state")
 def state():
     return env.state()
+
+
+def main():
+    uvicorn.run("server.app:app", host="0.0.0.0", port=7860)
+
+
+if __name__ == "__main__":
+    main()
