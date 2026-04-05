@@ -3,12 +3,17 @@ name = "paper-review-openenv"
 version = "0.1.0"
 description = "OpenEnv environment for research paper review simulation"
 requires-python = ">=3.10"
+
 dependencies = [
     "fastapi",
     "uvicorn",
     "pydantic",
-    "openai"
+    "openai",
+    "openenv-core>=0.2.0"
 ]
+
+[project.scripts]
+server = "server.app:app"
 
 [tool.openenv]
 environment = "environment:PaperReviewEnv"
