@@ -1,21 +1,29 @@
 import os
 import json
+from openai import OpenAI
 from environment import PaperReviewEnv, Action
 
 
 # Read environment variables
-API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
-BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+API_KEY = os.environ.get("API_KEY")
+BASE_URL = os.environ.get("API_BASE_URL")
+MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-4o-mini")
 
 client = None
 
 
 # Only create OpenAI client if API key exists
-if API_KEY:
+
+client = None
+
+if API_KEY and BASE_URL:
     try:
-        from openai import OpenAI
-        client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
+        client = OpenAI(
+            api_key=API_KEY,
+            base_url=BASE_URL
+        )
+    except Exception:
+        client = None
     except Exception:
         client = None
 
@@ -84,7 +92,18 @@ Abstract:
     except Exception:
         return fallback_prediction(abstract)
 
+def ping_proxy():
+    if client is None:
+        return
 
+    try:
+        client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[{"role": "user", "content": "ping"}],
+            temperature=0
+        )
+    except Exception:
+        pass
 def run_environment():
 
     env = PaperReviewEnv()
