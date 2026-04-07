@@ -2,12 +2,14 @@ import os
 import json
 from environment import PaperReviewEnv, Action
 
+
 # Read environment variables
 API_KEY = os.getenv("OPENAI_API_KEY")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 
 client = None
+
 
 # Only create OpenAI client if API key exists
 if API_KEY:
@@ -17,8 +19,9 @@ if API_KEY:
     except Exception:
         client = None
 
+
 def fallback_prediction(abstract):
-    
+
     abstract_lower = abstract.lower()
 
     if "cnn" in abstract_lower:
@@ -50,7 +53,7 @@ def fallback_prediction(abstract):
 
 
 def get_llm_prediction(abstract):
-    
+
     if client is None:
         return fallback_prediction(abstract)
 
@@ -85,12 +88,16 @@ Abstract:
 def run_environment():
 
     env = PaperReviewEnv()
-
     scores = []
 
-    for i in range(3):
+    for i in range(len(env.tasks)):
 
         observation = env.reset()
+
+        task_name = f"task_{i+1}"
+
+        # REQUIRED structured output block
+        print(f"[START] task={task_name}", flush=True)
 
         prediction = get_llm_prediction(
             observation.abstract
@@ -106,11 +113,24 @@ def run_environment():
 
         scores.append(reward.score)
 
-        print(f"Task {i+1} Score:", reward.score)
+        # REQUIRED structured output block
+        print(
+            f"[STEP] step=1 reward={reward.score}",
+            flush=True
+        )
+
+        # REQUIRED structured output block
+        print(
+            f"[END] task={task_name} score={reward.score} steps=1",
+            flush=True
+        )
 
     avg_score = sum(scores) / len(scores)
 
-    print("\nAverage Score:", avg_score)
+    print(
+        f"[SUMMARY] average_score={avg_score}",
+        flush=True
+    )
 
 
 if __name__ == "__main__":
