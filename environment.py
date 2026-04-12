@@ -6,6 +6,7 @@ from graders import grade
 class Observation(BaseModel):
     abstract: str
     task_type: str
+    stage: str
 
 
 class Action(BaseModel):
@@ -25,6 +26,8 @@ class PaperReviewEnv:
         self.index = 0
         self.current_task = None
         self.done = False
+        self.stage = 0
+        self.partial_action = {}
 
     def reset(self):
 
@@ -33,25 +36,81 @@ class PaperReviewEnv:
 
         self.current_task = self.tasks[self.index]
         self.index += 1
+
+        self.stage = 0
         self.done = False
+        self.partial_action = {}
 
         return Observation(
             abstract=self.current_task["abstract"],
-            task_type="paper_review"
+            task_type="paper_review",
+            stage="domain"
         )
 
     def step(self, action: Action):
 
-        score = grade(action.dict(), self.current_task)
+        reward_score = 0.0
 
-        self.done = True
+        # STEP 1 → DOMAIN
+        if self.stage == 0:
+            self.partial_action["domain"] = action.domain
 
-        observation = Observation(
-            abstract=self.current_task["abstract"],
-            task_type="completed"
-        )
+            if action.domain == self.current_task["domain"]:
+                reward_score = 0.4
 
-        return observation, Reward(score=score), self.done, {}
+            self.stage = 1
+
+            return Observation(
+                abstract=self.current_task["abstract"],
+                task_type="paper_review",
+                stage="keywords"
+            ), Reward(score=reward_score), False, {}
+
+        # STEP 2 → KEYWORDS
+        elif self.stage == 1:
+            self.partial_action["keywords"] = action.keywords
+
+            overlap = len(
+                set(action.keywords) &
+                set(self.current_task["keywords"])
+            )
+
+            reward_score = 0.3 * (
+                overlap / max(len(self.current_task["keywords"]), 1)
+            )
+
+            self.stage = 2
+
+            return Observation(
+                abstract=self.current_task["abstract"],
+                task_type="paper_review",
+                stage="decision"
+            ), Reward(score=reward_score), False, {}
+
+        # STEP 3 → DECISION
+        elif self.stage == 2:
+            self.partial_action["decision"] = action.decision
+
+            if action.decision == self.current_task["decision"]:
+                reward_score = 0.3
+
+            total_score = grade(
+                self.partial_action,
+                self.current_task
+            )
+
+            self.done = True
+
+            return Observation(
+                abstract=self.current_task["abstract"],
+                task_type="completed",
+                stage="finished"
+            ), Reward(score=total_score), True, {}
 
     def state(self):
-        return self.current_task
+
+        return {
+            "task": self.current_task,
+            "stage": self.stage,
+            "partial_action": self.partial_action
+        }
