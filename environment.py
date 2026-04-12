@@ -5,14 +5,13 @@ from graders import grade
 
 class Observation(BaseModel):
     abstract: str
-    task_type: str
     stage: str
 
 
 class Action(BaseModel):
-    domain: str = None
+    domain: str | None = None
     keywords: list[str] = []
-    decision: str = None
+    decision: str | None = None
 
 
 class Reward(BaseModel):
@@ -25,9 +24,9 @@ class PaperReviewEnv:
         self.tasks = TASKS
         self.index = 0
         self.current_task = None
+        self.stage = None
         self.done = False
-        self.stage = 0
-        self.partial_action = {}
+        self.partial_prediction = {}
 
     def reset(self):
 
@@ -37,14 +36,13 @@ class PaperReviewEnv:
         self.current_task = self.tasks[self.index]
         self.index += 1
 
-        self.stage = 0
+        self.stage = "domain"
         self.done = False
-        self.partial_action = {}
+        self.partial_prediction = {}
 
         return Observation(
             abstract=self.current_task["abstract"],
-            task_type="paper_review",
-            stage="domain"
+            stage=self.stage
         )
 
     def step(self, action: Action):
@@ -52,23 +50,24 @@ class PaperReviewEnv:
         reward_score = 0.0
 
         # STEP 1 → DOMAIN
-        if self.stage == 0:
-            self.partial_action["domain"] = action.domain
+        if self.stage == "domain":
+
+            self.partial_prediction["domain"] = action.domain
 
             if action.domain == self.current_task["domain"]:
                 reward_score = 0.4
 
-            self.stage = 1
+            self.stage = "keywords"
 
             return Observation(
                 abstract=self.current_task["abstract"],
-                task_type="paper_review",
-                stage="keywords"
+                stage=self.stage
             ), Reward(score=reward_score), False, {}
 
         # STEP 2 → KEYWORDS
-        elif self.stage == 1:
-            self.partial_action["keywords"] = action.keywords
+        elif self.stage == "keywords":
+
+            self.partial_prediction["keywords"] = action.keywords
 
             overlap = len(
                 set(action.keywords) &
@@ -79,23 +78,24 @@ class PaperReviewEnv:
                 overlap / max(len(self.current_task["keywords"]), 1)
             )
 
-            self.stage = 2
+            self.stage = "decision"
 
             return Observation(
                 abstract=self.current_task["abstract"],
-                task_type="paper_review",
-                stage="decision"
+                stage=self.stage
             ), Reward(score=reward_score), False, {}
 
         # STEP 3 → DECISION
-        elif self.stage == 2:
-            self.partial_action["decision"] = action.decision
+        elif self.stage == "decision":
+
+            self.partial_prediction["decision"] = action.decision
 
             if action.decision == self.current_task["decision"]:
                 reward_score = 0.3
 
+            # Final evaluation using grader
             total_score = grade(
-                self.partial_action,
+                self.partial_prediction,
                 self.current_task
             )
 
@@ -103,8 +103,7 @@ class PaperReviewEnv:
 
             return Observation(
                 abstract=self.current_task["abstract"],
-                task_type="completed",
-                stage="finished"
+                stage="completed"
             ), Reward(score=total_score), True, {}
 
     def state(self):
@@ -112,5 +111,5 @@ class PaperReviewEnv:
         return {
             "task": self.current_task,
             "stage": self.stage,
-            "partial_action": self.partial_action
+            "prediction": self.partial_prediction
         }
