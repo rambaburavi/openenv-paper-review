@@ -49,14 +49,14 @@ class PaperReviewEnv:
 
     def step(self, action: Action):
 
-        reward_score = 0.0
+        reward_score = 0.01
 
         if self.stage == "domain":
 
             self.partial_prediction["domain"] = action.domain
 
             if action.domain == self.current_task["domain"]:
-                reward_score = 0.4
+                reward_score = 0.39
 
             self.stage = "keywords"
 
@@ -74,7 +74,7 @@ class PaperReviewEnv:
                 set(self.current_task["keywords"])
             )
 
-            reward_score = 0.3 * (
+            reward_score = 0.29 * (
                 overlap / max(len(self.current_task["keywords"]), 1)
             )
 
