@@ -8,134 +8,262 @@ app_port: 7860
 tags:
   - openenv
 ---
+
 # Paper Review OpenEnv Environment
 
 ## Overview
 
-This project implements a real-world OpenEnv-compatible environment that simulates an AI research paper screening workflow used in academic conference submission pipelines.
+This project implements a **real-world OpenEnv-compatible environment** that simulates an academic research-paper triage workflow used in conference submission pipelines.
 
-The environment allows an agent to:
+The agent must:
 
-1. Classify the domain of a research paper
+1. Classify research domain
 2. Extract important keywords
-3. Recommend acceptance or rejection decisions
+3. Recommend accept/reject decisions
 
-It follows the OpenEnv API specification:
-
-* reset()
-* step(action)
-* state()
-
-and supports deterministic scoring using task-specific graders.
+The environment supports curriculum learning through multi-difficulty tasks and continuous reward shaping.
 
 ---
 
 ## Real-World Motivation
 
-This environment simulates early-stage reviewer triage workflows used in major research venues such as:
+Large venues such as:
 
-* NeurIPS
-* IEEE conferences
-* ACM conferences
+- NeurIPS
+- IEEE conferences
+- ACM conferences
 
-AI agents assist editors by classifying submissions, extracting metadata, and recommending acceptance decisions before expert review.
+receive thousands of submissions.
+
+Editors often perform **early-stage automated screening** before expert review.
+
+This environment simulates that workflow for training decision-support AI agents.
 
 ---
 
 ## Observation Space
 
-The observation returned to the agent contains:
+Each step returns:
 
-| Field     | Type   | Description             |
-| --------- | ------ | ----------------------- |
-| abstract  | string | Research paper abstract |
-| task_type | string | Current task stage      |
+| Field | Type | Description |
+|------|------|-------------|
+| abstract | string | Research paper abstract |
+| task_type | string | Task identifier |
+
 Example:
+
+```
+
 {
-"abstract": "This paper proposes CNN segmentation architecture.",
+"abstract": "CNN segmentation architecture for medical imaging",
 "task_type": "paper_review"
 }
+
+```
+
 ---
+
 ## Action Space
-The agent must respond with:
-| Field    | Type         | Description                  |
-| -------- | ------------ | ---------------------------- |
-| domain   | string       | Predicted research domain    |
-| keywords | list[string] | Extracted important keywords |
-| decision | string       | accept or reject             |
+
+Agent must return:
+
+| Field | Type | Description |
+|------|------|-------------|
+| domain | string | Predicted research domain |
+| keywords | list[string] | Extracted key terms |
+| decision | string | accept / reject |
+
 Example:
+
+```
+
 {
 "domain": "Computer Vision",
 "keywords": ["CNN", "segmentation"],
 "decision": "accept"
 }
+
+```
+
 ---
+
+## Task Curriculum
+
+The environment includes **10 dynamically sampled tasks** across difficulty levels:
+
+| Level | Focus |
+|------|------|
+| Easy | domain classification |
+| Medium | keyword extraction |
+| Hard | acceptance reasoning |
+
+Domains covered:
+
+- Computer Vision
+- NLP
+- Edge AI
+- Graph ML
+- Federated Learning
+- Generative Models
+- Model Optimization
+- Embedded AI
+
+Tasks are sampled programmatically to simulate dataset-driven evaluation pipelines.
+
+---
+
 ## Reward Function
-The environment provides partial reward signals:
-| Component                     | Score |
-| ----------------------------- | ----- |
-| Correct domain classification | +0.4  |
-| Keyword overlap accuracy      | +0.3  |
-| Correct acceptance decision   | +0.3  |
-Total reward range:
-0.0 → 1.0
-This ensures smooth learning signals across the episode.
+
+Reward is continuous and partially observable:
+
+| Component | Weight |
+|----------|--------|
+| Domain correctness | 0.4 |
+| Keyword overlap | 0.3 |
+| Accept/reject decision | 0.3 |
+
+Enhancements:
+
+- difficulty-aware scaling
+- semantic tolerance
+- stochastic reviewer variance
+- bounded scoring inside (0,1)
+
+This enables reinforcement-learning compatibility.
+
 ---
-## Tasks
-The environment currently includes three tasks:
-### Easy
-Domain classification for Computer Vision paper
-### Medium
-Keyword extraction for NLP summarization paper
-### Hard
-Acceptance decision for Embedded AI anomaly detection paper
-Each task is evaluated using deterministic graders returning scores between:
-0.0 and 1.0
----
+
 ## Environment API
-Supported OpenEnv interface:
+
+Fully compliant with OpenEnv specification:
+
+```
+
 reset()
-Returns initial observation
 step(action)
-Returns:
-(observation, reward, done, info)
 state()
-Returns internal environment task state
+
+```
+
+Returns:
+
+```
+
+(observation, reward, done, info)
+
+```
+
 ---
-## Baseline Inference Script
+
+## Baseline Agent
+
 The baseline agent:
-* Uses OpenAI client when API key available
-* Falls back to deterministic heuristic predictions otherwise
-* Produces reproducible scores across all tasks
+
+- uses OpenAI-compatible client
+- respects API_BASE_URL proxy routing
+- emits structured stdout logs
+- produces deterministic reproducible evaluation traces
+
 Run locally:
+
+```
+
 pip install -r requirements.txt
 python inference.py
+
+```
+
 ---
+
+## Structured Evaluation Output
+
+The environment emits validator-compatible logs:
+
+```
+
+[START] task=task_1
+[STEP] step=1 reward=0.63
+[END] task=task_1 score=0.63 steps=1
+
+```
+
+This enables automated benchmarking through OpenEnv pipelines.
+
+---
+
 ## Docker Support
-This environment is containerized and runs with:
+
+Build:
+
+```
+
 docker build -t paper-review-env .
+
+```
+
+Run:
+
+```
+
 docker run paper-review-env
+
+```
+
 ---
+
 ## File Structure
-environment.py → OpenEnv environment implementation
-tasks.py → task dataset definitions
-graders.py → scoring logic
-inference.py → baseline evaluation script
-openenv.yaml → OpenEnv metadata specification
-Dockerfile → container runtime configuration
+
+```
+
+environment.py   → OpenEnv environment
+tasks.py         → dataset-style task generator
+graders.py       → stochastic curriculum-aware scoring
+inference.py     → baseline agent runner
+server/app.py    → FastAPI environment server
+openenv.yaml     → environment metadata
+Dockerfile       → container runtime
+
+```
+
 ---
-## Expected Output Example
-Task 1 Score: 1.0
-Task 2 Score: 1.0
-Task 3 Score: 1.0
-Average Score: 1.0
+
+## Example Output
+
+```
+
+[START] task=task_1
+[STEP] step=1 reward=0.72
+[END] task=task_1 score=0.72 steps=1
+
+```
+
 ---
-## Compliance Checklist
-This environment satisfies OpenEnv Round-1 requirements:
-Real-world task simulation
-Typed observation/action/reward models
-3 graded tasks (easy → medium → hard)
-Deterministic reward function
-Baseline inference script
-Docker container support
-Hugging Face Spaces deployment
+
+## OpenEnv Compliance Checklist
+
+This environment satisfies Round-1 requirements:
+
+✔ real-world workflow simulation  
+✔ typed observation/action/reward models  
+✔ ≥10 curriculum tasks  
+✔ stochastic reward shaping  
+✔ proxy-compatible inference agent  
+✔ structured stdout evaluation logs  
+✔ Docker reproducibility  
+✔ Hugging Face Spaces deployment  
+✔ FastAPI environment server  
+
+---
+
+## Deployment
+
+Hugging Face Space:
+
+https://huggingface.co/spaces/rambo26/paper-review-openenv
+
+GitHub repository:
+
+https://github.com/rambaburavi/openenv-paper-review
+```
+
+---

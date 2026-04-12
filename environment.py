@@ -12,6 +12,7 @@ class Action(BaseModel):
     domain: str | None = None
     keywords: list[str] = []
     decision: str | None = None
+    confidence: float | None = None
 
 
 class Reward(BaseModel):
@@ -21,6 +22,7 @@ class Reward(BaseModel):
 class PaperReviewEnv:
 
     def __init__(self):
+
         self.tasks = TASKS
         self.index = 0
         self.current_task = None
@@ -49,7 +51,6 @@ class PaperReviewEnv:
 
         reward_score = 0.0
 
-        # STEP 1 → DOMAIN
         if self.stage == "domain":
 
             self.partial_prediction["domain"] = action.domain
@@ -64,7 +65,6 @@ class PaperReviewEnv:
                 stage=self.stage
             ), Reward(score=reward_score), False, {}
 
-        # STEP 2 → KEYWORDS
         elif self.stage == "keywords":
 
             self.partial_prediction["keywords"] = action.keywords
@@ -85,15 +85,11 @@ class PaperReviewEnv:
                 stage=self.stage
             ), Reward(score=reward_score), False, {}
 
-        # STEP 3 → DECISION
         elif self.stage == "decision":
 
             self.partial_prediction["decision"] = action.decision
+            self.partial_prediction["confidence"] = action.confidence
 
-            if action.decision == self.current_task["decision"]:
-                reward_score = 0.3
-
-            # Final evaluation using grader
             total_score = grade(
                 self.partial_prediction,
                 self.current_task
