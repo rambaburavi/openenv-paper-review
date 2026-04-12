@@ -141,7 +141,7 @@ def run_environment():
 
             observation, reward, done, _ = env.step(action)
 
-            total_score += reward.score
+            total_score = reward.score
 
             print(
                 f"[STEP] step={steps} reward={reward.score}",
